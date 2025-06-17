@@ -1,0 +1,149 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Webhooks</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="loading-container">
+    <ion-spinner name="circles"></ion-spinner>
+    <p>Carregando webhooks...</p>
+  </div>
+
+  <!-- Lista de Webhooks -->
+  <div *ngIf="!isLoading">
+    <!-- Sem webhooks -->
+    <div *ngIf="webhooks.length === 0" class="empty-state">
+      <ion-icon name="link-outline" size="large"></ion-icon>
+      <h2>Nenhum webhook configurado</h2>
+      <p>Adicione webhooks para receber notificações sobre eventos do aplicativo.</p>
+      <ion-button expand="block" (click)="openAddModal()">
+        <ion-icon name="add-circle-outline" slot="start"></ion-icon>
+        Adicionar Webhook
+      </ion-button>
+    </div>
+
+    <!-- Lista de webhooks -->
+    <ion-list *ngIf="webhooks.length > 0">
+      <ion-item-group>
+        <ion-item-divider>
+          <ion-label>Webhooks Configurados</ion-label>
+        </ion-item-divider>
+
+        <ion-card *ngFor="let webhook of webhooks">
+          <ion-card-header>
+            <ion-card-subtitle>
+              <ion-badge [color]="webhook.active ? 'success' : 'medium'">
+                {{ webhook.active ? 'Ativo' : 'Inativo' }}
+              </ion-badge>
+            </ion-card-subtitle>
+            <ion-card-title>{{ webhook.name }}</ion-card-title>
+          </ion-card-header>
+
+          <ion-card-content>
+            <div class="webhook-info">
+              <p><strong>URL:</strong> {{ webhook.url }}</p>
+              <p><strong>Criado em:</strong> {{ formatDate(webhook.createdAt) }}</p>
+              <p><strong>Último disparo:</strong> {{ formatDate(webhook.lastTriggered) }}</p>
+              
+              <div class="webhook-events">
+                <strong>Eventos:</strong>
+                <div class="event-chips">
+                  <ion-chip *ngFor="let event of webhook.events" color="primary" outline>
+                    {{ getEventName(event) }}
+                  </ion-chip>
+                </div>
+              </div>
+            </div>
+
+            <div class="webhook-actions">
+              <ion-button fill="clear" color="primary" (click)="openEditModal(webhook)">
+                <ion-icon name="create-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              
+              <ion-button fill="clear" [color]="webhook.active ? 'warning' : 'success'" (click)="toggleWebhookStatus(webhook)">
+                <ion-icon [name]="webhook.active ? 'close-circle-outline' : 'checkmark-circle-outline'" slot="icon-only"></ion-icon>
+              </ion-button>
+              
+              <ion-button fill="clear" color="tertiary" (click)="testWebhook(webhook)" [disabled]="isTesting">
+                <ion-icon name="refresh-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+              
+              <ion-button fill="clear" color="danger" (click)="confirmDelete(webhook)">
+                <ion-icon name="trash-outline" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+      </ion-item-group>
+    </ion-list>
+  </div>
+
+  <!-- Botão flutuante para adicionar -->
+  <ion-fab vertical="bottom" horizontal="end" *ngIf="!isLoading && webhooks.length > 0">
+    <ion-fab-button (click)="openAddModal()">
+      <ion-icon name="add"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+
+  <!-- Modal para adicionar/editar webhook -->
+  <ion-modal [isOpen]="isModalOpen" (didDismiss)="closeModal()">
+    <ng-template>
+      <ion-header>
+        <ion-toolbar color="primary">
+          <ion-title>{{ isEditing ? 'Editar' : 'Adicionar' }} Webhook</ion-title>
+          <ion-buttons slot="end">
+            <ion-button (click)="closeModal()">
+              <ion-icon name="close-outline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+
+      <ion-content class="ion-padding">
+        <form (ngSubmit)="saveWebhook()">
+          <ion-list>
+            <ion-item>
+              <ion-label position="floating">Nome <ion-text color="danger">*</ion-text></ion-label>
+              <ion-input [(ngModel)]="currentWebhook.name" name="name" placeholder="Ex: Meu Webhook" required></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">URL <ion-text color="danger">*</ion-text></ion-label>
+              <ion-input [(ngModel)]="currentWebhook.url" name="url" placeholder="https://exemplo.com/webhook" required></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label position="floating">Secret (opcional)</ion-label>
+              <ion-input [(ngModel)]="currentWebhook.secret" name="secret" placeholder="Chave secreta para autenticação"></ion-input>
+            </ion-item>
+
+            <ion-item>
+              <ion-label>Eventos <ion-text color="danger">*</ion-text></ion-label>
+              <ion-select [(ngModel)]="currentWebhook.events" name="events" multiple="true" placeholder="Selecione os eventos" required>
+                <ion-select-option *ngFor="let event of availableEvents" [value]="event.id">
+                  {{ event.name }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+
+            <ion-item>
+              <ion-label>Ativo</ion-label>
+              <ion-toggle [(ngModel)]="currentWebhook.active" name="active"></ion-toggle>
+            </ion-item>
+          </ion-list>
+
+          <div class="ion-padding">
+            <ion-button expand="block" type="submit">
+              {{ isEditing ? 'Atualizar' : 'Adicionar' }} Webhook
+            </ion-button>
+          </div>
+        </form>
+      </ion-content>
+    </ng-template>
+  </ion-modal>
+</ion-content> 

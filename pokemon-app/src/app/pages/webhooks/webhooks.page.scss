@@ -1,0 +1,157 @@
+// Estilos para a página de webhooks
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 20px;
+  
+  ion-spinner {
+    width: 60px;
+    height: 60px;
+    margin-bottom: 20px;
+  }
+  
+  p {
+    font-size: 18px;
+    color: var(--ion-color-medium);
+  }
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 20px;
+  
+  ion-icon {
+    font-size: 64px;
+    color: var(--ion-color-medium);
+    margin-bottom: 20px;
+  }
+  
+  h2 {
+    font-size: 22px;
+    margin-bottom: 10px;
+    color: var(--ion-color-dark);
+  }
+  
+  p {
+    font-size: 16px;
+    color: var(--ion-color-medium);
+    margin-bottom: 30px;
+    max-width: 300px;
+  }
+  
+  ion-button {
+    margin-top: 20px;
+  }
+}
+
+ion-card {
+  margin: 16px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  ion-card-header {
+    padding-bottom: 8px;
+    
+    ion-card-title {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    ion-card-subtitle {
+      display: flex;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+  }
+  
+  ion-card-content {
+    padding-top: 8px;
+  }
+}
+
+.webhook-info {
+  margin-bottom: 16px;
+  
+  p {
+    margin: 8px 0;
+    font-size: 14px;
+    color: var(--ion-color-dark);
+  }
+  
+  .webhook-events {
+    margin-top: 12px;
+    
+    strong {
+      display: block;
+      margin-bottom: 8px;
+    }
+  }
+  
+  .event-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    
+    ion-chip {
+      margin: 0;
+      font-size: 12px;
+    }
+  }
+}
+
+.webhook-actions {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--ion-color-light-shade);
+  padding-top: 12px;
+  margin-top: 12px;
+  
+  ion-button {
+    margin: 0 4px;
+  }
+}
+
+// Estilos para o modal
+ion-modal {
+  --height: auto;
+  --width: 90%;
+  --max-width: 500px;
+  --border-radius: 16px;
+  --box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  
+  @media (min-width: 768px) {
+    --width: 70%;
+  }
+}
+
+// Responsividade
+@media (min-width: 768px) {
+  ion-card {
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .webhook-actions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .webhook-actions {
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+  
+  .event-chips ion-chip {
+    margin-bottom: 8px;
+  }
+} 

@@ -1,0 +1,187 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title *ngIf="pokemon">{{ formatName(pokemon.name) }}</ion-title>
+    <ion-buttons slot="end" *ngIf="pokemon">
+      <ion-button (click)="toggleFavorite()">
+        <ion-icon 
+          [name]="isFavorite() ? 'heart' : 'heart-outline'"
+          size="large"
+        ></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <!-- Loading -->
+  <div *ngIf="loading" class="loading-container">
+    <ion-spinner name="pokemon"></ion-spinner>
+    <p>Carregando detalhes...</p>
+  </div>
+
+  <!-- Pokemon Details -->
+  <div *ngIf="!loading && pokemon" class="pokemon-detail-container">
+    <!-- Header com imagem e info básica -->
+    <div class="pokemon-header" [ngStyle]="{'background-color': getTypeColor(pokemon.types[0].type.name)}">
+      <div class="pokemon-id">#{{ pokemon.id.toString().padStart(3, '0') }}</div>
+      <img [src]="getPokemonImage()" [alt]="pokemon.name" class="pokemon-image">
+      
+      <!-- Tipos -->
+      <div class="pokemon-types">
+        <ion-badge 
+          *ngFor="let type of pokemon.types" 
+          [style.background-color]="getTypeColor(type.type.name)"
+          class="type-badge"
+        >
+          {{ formatName(type.type.name) }}
+        </ion-badge>
+      </div>
+    </div>
+
+    <!-- Informações Básicas -->
+    <div class="segment-content">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Sobre {{ formatName(pokemon.name) }}</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="pokemon-description">{{ getDescription() }}</p>
+          
+          <ion-grid class="pokemon-info-grid">
+            <ion-row>
+              <ion-col size="6">
+                <div class="info-item">
+                  <span class="info-label">Categoria</span>
+                  <span class="info-value">{{ getCategory() }}</span>
+                </div>
+              </ion-col>
+              <ion-col size="6">
+                <div class="info-item">
+                  <span class="info-label">Altura</span>
+                  <span class="info-value">{{ pokemon.height / 10 }}m</span>
+                </div>
+              </ion-col>
+            </ion-row>
+            <ion-row>
+              <ion-col size="6">
+                <div class="info-item">
+                  <span class="info-label">Peso</span>
+                  <span class="info-value">{{ pokemon.weight / 10 }}kg</span>
+                </div>
+              </ion-col>
+              <ion-col size="6">
+                <div class="info-item">
+                  <span class="info-label">Experiência Base</span>
+                  <span class="info-value">{{ pokemon.base_experience }}</span>
+                </div>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Habilidades (Corrigido) -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Habilidades</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="abilities-container">
+            <div *ngIf="pokemon.abilities && pokemon.abilities.length > 0">
+              <div class="ability-item" *ngFor="let ability of pokemon.abilities">
+                <div class="ability-chip">
+                  {{ formatName(ability.ability.name) }}
+                  <span *ngIf="ability.is_hidden" class="hidden-label"> (Oculta)</span>
+                </div>
+              </div>
+            </div>
+            <div *ngIf="!pokemon.abilities || pokemon.abilities.length === 0" class="no-data">
+              Informação não disponível
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Sprites / Imagens -->
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Sprites</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="sprites-container">
+            <div class="sprite-item" *ngIf="pokemon.sprites && pokemon.sprites.front_default">
+              <img [src]="pokemon.sprites.front_default" alt="Frente">
+              <span>Frente</span>
+            </div>
+            <div class="sprite-item" *ngIf="pokemon.sprites && pokemon.sprites.back_default">
+              <img [src]="pokemon.sprites.back_default" alt="Costas">
+              <span>Costas</span>
+            </div>
+            <div class="sprite-item" *ngIf="pokemon.sprites && pokemon.sprites.front_shiny">
+              <img [src]="pokemon.sprites.front_shiny" alt="Shiny Frente">
+              <span>Shiny</span>
+            </div>
+            <div class="sprite-item" *ngIf="pokemon.sprites && pokemon.sprites.back_shiny">
+              <img [src]="pokemon.sprites.back_shiny" alt="Shiny Costas">
+              <span>Shiny Costas</span>
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Status -->
+    <div class="segment-content">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Estatísticas</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div *ngIf="pokemon.stats && pokemon.stats.length > 0">
+            <div class="stat-container" *ngFor="let stat of pokemon.stats">
+              <div class="stat-header">
+                <span class="stat-name">{{ formatStatName(stat.stat.name) }}</span>
+                <span class="stat-value">{{ stat.base_stat }}</span>
+              </div>
+              <div class="stat-bar-container">
+                <div class="stat-bar" 
+                     [style.width.%]="getStatPercentage(stat.base_stat)" 
+                     [style.background-color]="getStatColor(stat.base_stat)">
+                </div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="!pokemon.stats || pokemon.stats.length === 0" class="no-data">
+            Informação não disponível
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+
+    <!-- Movimentos -->
+    <div class="segment-content">
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Movimentos</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <div class="moves-container">
+            <div *ngIf="moves && moves.length > 0">
+              <div class="move-list">
+                <div class="move-item" *ngFor="let move of moves">
+                  {{ move.name }}
+                </div>
+              </div>
+            </div>
+            <div *ngIf="!moves || moves.length === 0" class="no-data">
+              Informação não disponível
+            </div>
+          </div>
+        </ion-card-content>
+      </ion-card>
+    </div>
+  </div>
+</ion-content>

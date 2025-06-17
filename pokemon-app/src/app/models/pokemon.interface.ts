@@ -25,10 +25,30 @@ export interface PokemonListResponse {
     stats: PokemonStat[];
     types: PokemonType[];
     abilities: PokemonAbility[];
+    moves: PokemonMove[];
     species: {
       name: string;
       url: string;
     };
+  }
+  
+  // Movimentos do Pokémon
+  export interface PokemonMove {
+    move: {
+      name: string;
+      url: string;
+    };
+    version_group_details: {
+      level_learned_at: number;
+      move_learn_method: {
+        name: string;
+        url: string;
+      };
+      version_group: {
+        name: string;
+        url: string;
+      };
+    }[];
   }
   
   // Sprites (imagens)

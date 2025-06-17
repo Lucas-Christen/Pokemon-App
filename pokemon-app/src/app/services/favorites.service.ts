@@ -3,6 +3,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { FavoritePokemon } from '../models/pokemon.interface';
+import { WebhookService } from './webhook.service';
 
 @Injectable({
   providedIn: 'root'
@@ -10,10 +11,11 @@ import { FavoritePokemon } from '../models/pokemon.interface';
 export class FavoritesService {
   private readonly STORAGE_KEY = 'pokemon_favorites';
   private favoritesSubject = new BehaviorSubject<FavoritePokemon[]>([]);
+  private favoritesMap = new Map<number, FavoritePokemon>(); // Cache para acesso rápido
   
   public favorites$ = this.favoritesSubject.asObservable();
 
-  constructor() {
+  constructor(private webhookService: WebhookService) {
     this.loadFavorites();
   }
 
@@ -26,19 +28,36 @@ export class FavoritesService {
           ...fav,
           dateAdded: new Date(fav.dateAdded)
         }));
+        
+        // Atualizar o subject e o mapa de cache
         this.favoritesSubject.next(favorites);
+        this.updateFavoritesMap(favorites);
       }
     } catch (error) {
       console.error('Erro ao carregar favoritos:', error);
       this.favoritesSubject.next([]);
+      this.favoritesMap.clear();
     }
+  }
+
+  // Atualizar o mapa de cache
+  private updateFavoritesMap(favorites: FavoritePokemon[]): void {
+    this.favoritesMap.clear();
+    favorites.forEach(fav => {
+      this.favoritesMap.set(fav.id, fav);
+    });
   }
 
   // Salvar favoritos no localStorage
   private saveFavorites(favorites: FavoritePokemon[]): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(favorites));
+      // Usar requestAnimationFrame para não bloquear a UI
+      requestAnimationFrame(() => {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(favorites));
+      });
+      
       this.favoritesSubject.next(favorites);
+      this.updateFavoritesMap(favorites);
     } catch (error) {
       console.error('Erro ao salvar favoritos:', error);
     }
@@ -56,10 +75,8 @@ export class FavoritesService {
 
   // Adicionar aos favoritos
   addToFavorites(pokemon: FavoritePokemon): boolean {
-    const currentFavorites = this.getFavoritesSync();
-    
-    // Verificar se já está nos favoritos
-    if (this.isFavorite(pokemon.id)) {
+    // Verificar se já está nos favoritos usando o mapa (mais rápido)
+    if (this.favoritesMap.has(pokemon.id)) {
       return false;
     }
 
@@ -68,26 +85,49 @@ export class FavoritesService {
       dateAdded: new Date()
     };
 
-    const updatedFavorites = [...currentFavorites, newFavorite];
+    const updatedFavorites = [...this.getFavoritesSync(), newFavorite];
     this.saveFavorites(updatedFavorites);
+    
+    // Disparar evento de webhook
+    setTimeout(() => {
+      this.webhookService.triggerEvent(
+        this.webhookService.EVENT_TYPES.FAVORITE_ADDED,
+        { pokemon: newFavorite }
+      );
+    }, 0);
+    
     return true;
   }
 
   // Remover dos favoritos
   removeFromFavorites(pokemonId: number): boolean {
+    // Verificar se existe no mapa primeiro (mais rápido)
+    if (!this.favoritesMap.has(pokemonId)) {
+      return false;
+    }
+    
+    const pokemonToRemove = this.favoritesMap.get(pokemonId);
     const currentFavorites = this.getFavoritesSync();
     const updatedFavorites = currentFavorites.filter(fav => fav.id !== pokemonId);
     
-    if (updatedFavorites.length !== currentFavorites.length) {
-      this.saveFavorites(updatedFavorites);
-      return true;
+    this.saveFavorites(updatedFavorites);
+    
+    // Disparar evento de webhook de forma assíncrona
+    if (pokemonToRemove) {
+      setTimeout(() => {
+        this.webhookService.triggerEvent(
+          this.webhookService.EVENT_TYPES.FAVORITE_REMOVED,
+          { pokemon: pokemonToRemove }
+        );
+      }, 0);
     }
-    return false;
+    
+    return true;
   }
 
-  // Verificar se é favorito
+  // Verificar se é favorito (usando o mapa para performance)
   isFavorite(pokemonId: number): boolean {
-    return this.getFavoritesSync().some(fav => fav.id === pokemonId);
+    return this.favoritesMap.has(pokemonId);
   }
 
   // Toggle favorito
@@ -101,12 +141,23 @@ export class FavoritesService {
 
   // Obter contagem de favoritos
   getFavoritesCount(): number {
-    return this.getFavoritesSync().length;
+    return this.favoritesMap.size;
   }
 
   // Limpar todos os favoritos
   clearAllFavorites(): void {
+    const currentFavorites = this.getFavoritesSync();
     this.saveFavorites([]);
+    
+    // Disparar evento para cada favorito removido de forma assíncrona
+    setTimeout(() => {
+      currentFavorites.forEach(favorite => {
+        this.webhookService.triggerEvent(
+          this.webhookService.EVENT_TYPES.FAVORITE_REMOVED,
+          { pokemon: favorite }
+        );
+      });
+    }, 0);
   }
 
   // Obter favoritos ordenados
@@ -122,9 +173,9 @@ export class FavoritesService {
     });
   }
 
-  // Buscar favorito por ID
+  // Buscar favorito por ID (usando o mapa para performance)
   getFavoriteById(id: number): FavoritePokemon | undefined {
-    return this.getFavoritesSync().find(fav => fav.id === id);
+    return this.favoritesMap.get(id);
   }
 
   // Exportar favoritos (para backup)

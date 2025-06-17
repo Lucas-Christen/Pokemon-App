@@ -3,6 +3,28 @@
     <ion-title>
       Pokédex
     </ion-title>
+    <ion-buttons slot="end">
+      <ion-button routerLink="/webhooks">
+        <ion-icon name="link-outline"></ion-icon>
+      </ion-button>
+      <ion-button routerLink="/favorites">
+        <ion-icon name="heart"></ion-icon>
+        <ion-badge color="danger" *ngIf="favoritesService.getFavoritesCount() > 0">
+          {{ favoritesService.getFavoritesCount() }}
+        </ion-badge>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+  <ion-toolbar color="light">
+    <ion-searchbar 
+      placeholder="Buscar Pokémon" 
+      [(ngModel)]="searchTerm" 
+      (ionInput)="onSearchInput($event)"
+      [debounce]="300"
+      animated="true"
+      show-cancel-button="focus"
+      (ionClear)="resetSearch()"
+    ></ion-searchbar>
   </ion-toolbar>
 </ion-header>
 
@@ -13,87 +35,115 @@
     </ion-toolbar>
   </ion-header>
 
+  <!-- Resultados da busca em tempo real -->
+  <div *ngIf="showSearchResults" class="search-results-container">
+    <ion-list *ngIf="filteredPokemon.length > 0">
+      <ion-item *ngFor="let pokemon of filteredPokemon" (click)="selectPokemon(pokemon.id)" button detail>
+        <ion-avatar slot="start">
+          <img [src]="pokemonService.getPokemonImageUrl(pokemon.id)" [alt]="pokemon.name" loading="lazy">
+        </ion-avatar>
+        <ion-label>
+          <h2>#{{ pokemon.id.toString().padStart(3, '0') }} {{ formatPokemonName(pokemon.name) }}</h2>
+        </ion-label>
+      </ion-item>
+    </ion-list>
+    
+    <!-- Indicador de busca -->
+    <div *ngIf="isSearching" class="search-loading">
+      <ion-spinner name="dots"></ion-spinner>
+      <p>Buscando...</p>
+    </div>
+    
+    <!-- Sem resultados -->
+    <div *ngIf="!isSearching && filteredPokemon.length === 0 && searchTerm.length > 0" class="no-results">
+      <ion-icon name="search-outline"></ion-icon>
+      <p>Nenhum Pokémon encontrado para "{{ searchTerm }}"</p>
+    </div>
+  </div>
+
   <!-- Loading inicial -->
   <div *ngIf="loading && pokemons.length === 0" class="loading-container">
     <ion-spinner name="pokemon"></ion-spinner>
     <p>Carregando Pokémons...</p>
   </div>
 
-  <!-- Lista de Pokemon -->
-  <ion-grid>
-    <ion-row>
-      <ion-col size="12" size-md="6" size-lg="4" *ngFor="let pokemon of pokemons">
-        <ion-card class="pokemon-card">
-          <div class="pokemon-image-container">
-            <img 
-              [src]="getPokemonImage(pokemon)" 
-              [alt]="pokemon.name"
-              class="pokemon-image"
-              loading="lazy"
-            />
-            <ion-button 
-              fill="clear" 
-              class="favorite-button"
-              (click)="toggleFavorite(pokemon)"
-              [color]="isFavorite(pokemon.id) ? 'danger' : 'medium'"
-            >
-              <ion-icon 
-                [name]="isFavorite(pokemon.id) ? 'heart' : 'heart-outline'"
-                size="large"
-              ></ion-icon>
-            </ion-button>
-          </div>
-
-          <ion-card-header>
-            <ion-card-title>
-              #{{ pokemon.id.toString().padStart(3, '0') }} 
-              {{ formatPokemonName(pokemon.name) }}
-            </ion-card-title>
-          </ion-card-header>
-
-          <ion-card-content>
-            <!-- Tipos -->
-            <div class="pokemon-types">
-              <ion-badge 
-                *ngFor="let type of pokemon.types" 
-                [style.background-color]="getTypeColor(type.type.name)"
-                class="type-badge"
+  <!-- Lista de Pokemon (mostrada quando não está buscando) -->
+  <div *ngIf="!showSearchResults">
+    <ion-grid>
+      <ion-row>
+        <ion-col size="12" size-md="6" size-lg="4" *ngFor="let pokemon of pokemons">
+          <ion-card class="pokemon-card" (click)="goToPokemonDetail(pokemon.id)">
+            <div class="pokemon-image-container">
+              <img 
+                [src]="getPokemonImage(pokemon)" 
+                [alt]="pokemon.name"
+                class="pokemon-image"
+                loading="lazy"
+              />
+              <ion-button 
+                fill="clear" 
+                class="favorite-button"
+                (click)="toggleFavorite(pokemon, $event)"
+                [color]="isFavorite(pokemon.id) ? 'danger' : 'medium'"
               >
-                {{ formatPokemonName(type.type.name) }}
-              </ion-badge>
+                <ion-icon 
+                  [name]="isFavorite(pokemon.id) ? 'heart' : 'heart-outline'"
+                  size="large"
+                ></ion-icon>
+              </ion-button>
             </div>
 
-            <!-- Estatísticas básicas -->
-            <div class="pokemon-stats">
-              <div class="stat">
-                <span class="stat-label">Altura:</span>
-                <span class="stat-value">{{ pokemon.height / 10 }}m</span>
-              </div>
-              <div class="stat">
-                <span class="stat-label">Peso:</span>
-                <span class="stat-value">{{ pokemon.weight / 10 }}kg</span>
-              </div>
-            </div>
-          </ion-card-content>
-        </ion-card>
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+            <ion-card-header>
+              <ion-card-title>
+                #{{ pokemon.id.toString().padStart(3, '0') }} 
+                {{ formatPokemonName(pokemon.name) }}
+              </ion-card-title>
+            </ion-card-header>
 
-  <!-- Botão carregar mais -->
-  <div class="load-more-container" *ngIf="!loading">
-    <ion-button expand="block" fill="outline" (click)="loadMore()">
-      Carregar Mais Pokémons
-    </ion-button>
+            <ion-card-content>
+              <!-- Tipos -->
+              <div class="pokemon-types">
+                <ion-badge 
+                  *ngFor="let type of pokemon.types" 
+                  [style.background-color]="getTypeColor(type.type.name)"
+                  class="type-badge"
+                >
+                  {{ formatPokemonName(type.type.name) }}
+                </ion-badge>
+              </div>
+
+              <!-- Estatísticas básicas -->
+              <div class="pokemon-stats">
+                <div class="stat">
+                  <span class="stat-label">Altura:</span>
+                  <span class="stat-value">{{ pokemon.height / 10 }}m</span>
+                </div>
+                <div class="stat">
+                  <span class="stat-label">Peso:</span>
+                  <span class="stat-value">{{ pokemon.weight / 10 }}kg</span>
+                </div>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <!-- Botão carregar mais -->
+    <div class="load-more-container" *ngIf="!loading">
+      <ion-button expand="block" fill="outline" (click)="loadMore()">
+        Carregar Mais Pokémons
+      </ion-button>
+    </div>
   </div>
 
   <!-- Loading para carregar mais -->
-  <div *ngIf="loading && pokemons.length > 0" class="loading-container">
+  <div *ngIf="loading && pokemons.length > 0 && !showSearchResults" class="loading-container">
     <ion-spinner></ion-spinner>
   </div>
 
   <!-- Botão flutuante para Pokemon aleatório -->
-  <ion-fab vertical="bottom" horizontal="end">
+  <ion-fab vertical="bottom" horizontal="end" *ngIf="!showSearchResults">
     <ion-fab-button (click)="getRandomPokemon()" [disabled]="loading">
       <ion-icon name="shuffle"></ion-icon>
     </ion-fab-button>

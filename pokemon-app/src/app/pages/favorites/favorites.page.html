@@ -1,0 +1,100 @@
+<ion-header [translucent]="true">
+    <ion-toolbar color="primary">
+      <ion-buttons slot="start">
+        <ion-back-button defaultHref="/home"></ion-back-button>
+      </ion-buttons>
+      <ion-title>
+        Meus Favoritos
+      </ion-title>
+      <ion-buttons slot="end" *ngIf="favorites.length > 0">
+        <ion-button fill="clear" (click)="clearAllFavorites()">
+          <ion-icon name="trash-outline"></ion-icon>
+        </ion-button>
+      </ion-buttons>
+    </ion-toolbar>
+  </ion-header>
+  
+  <ion-content [fullscreen]="true">
+    <ion-header collapse="condense">
+      <ion-toolbar>
+        <ion-title size="large">Meus Favoritos</ion-title>
+      </ion-toolbar>
+    </ion-header>
+  
+    <!-- Estado vazio -->
+    <div *ngIf="favorites.length === 0" class="empty-state">
+      <ion-icon name="heart-outline" class="empty-icon"></ion-icon>
+      <h2>Nenhum favorito ainda</h2>
+      <p>Adicione seus Pokémons favoritos tocando no coração!</p>
+      <ion-button routerLink="/home" fill="outline">
+        Explorar Pokémons
+      </ion-button>
+    </div>
+  
+    <!-- Lista de favoritos -->
+    <div *ngIf="favorites.length > 0">
+      <!-- Contador e ordenação -->
+      <div class="favorites-header">
+        <p class="favorites-count">{{ favorites.length }} Pokémon{{ favorites.length > 1 ? 's' : '' }} favorito{{ favorites.length > 1 ? 's' : '' }}</p>
+        <ion-select 
+          [(ngModel)]="sortBy" 
+          (ionChange)="onSortChange()"
+          interface="popover"
+          placeholder="Ordenar por"
+        >
+          <ion-select-option value="dateAdded">Data adicionado</ion-select-option>
+          <ion-select-option value="name">Nome</ion-select-option>
+        </ion-select>
+      </div>
+  
+      <!-- Grid de favoritos -->
+      <ion-grid>
+        <ion-row>
+          <ion-col size="12" size-md="6" size-lg="4" *ngFor="let favorite of sortedFavorites">
+            <ion-card class="pokemon-card" (click)="viewPokemonDetail(favorite.id)">
+              <div class="pokemon-image-container">
+                <img 
+                  [src]="getPokemonImage(favorite)" 
+                  [alt]="favorite.name"
+                  class="pokemon-image"
+                  loading="lazy"
+                  (error)="handleImageError($event, favorite.id)"
+                />
+                <ion-button 
+                  fill="clear" 
+                  class="remove-button"
+                  (click)="removeFavorite($event, favorite.id)"
+                  color="danger"
+                >
+                  <ion-icon name="heart" size="large"></ion-icon>
+                </ion-button>
+              </div>
+  
+              <ion-card-header>
+                <ion-card-title>
+                  #{{ favorite.id.toString().padStart(3, '0') }} 
+                  {{ formatPokemonName(favorite.name) }}
+                </ion-card-title>
+                <ion-card-subtitle>
+                  Adicionado em {{ formatDate(favorite.dateAdded) }}
+                </ion-card-subtitle>
+              </ion-card-header>
+  
+              <ion-card-content>
+                <!-- Tipos -->
+                <div class="pokemon-types">
+                  <ion-badge 
+                    *ngFor="let type of favorite.types" 
+                    [style.background-color]="getTypeColor(type)"
+                    class="type-badge"
+                  >
+                    {{ formatPokemonName(type) }}
+                  </ion-badge>
+                </div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </div>
+  </ion-content>
